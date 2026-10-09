@@ -50,6 +50,8 @@ export type SharedControlLogicalSubscription<TResult = unknown> = {
   // id to unsubscribe by yet, so it must defer instead of finishing locally —
   // otherwise the resubscribe the server is about to accept leaks.
   awaitingResubscribe?: boolean
+  // Why: true once the host answered this (re)subscribe, proving its stream is registered.
+  acknowledged?: boolean
 }
 
 export type SharedControlReadyWaiter = {

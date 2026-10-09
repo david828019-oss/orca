@@ -8,8 +8,8 @@ import type { RpcContext } from '../core'
 
 const SUBSCRIPTION_PREFIX = 'agentSession'
 
-function withFrameId(ctx: RpcContext, base: string): string {
-  return ctx.requestId ? `${base}:${ctx.requestId}` : base
+function withFrameId(base: string, frameId: string | undefined): string {
+  return frameId ? `${base}:${frameId}` : base
 }
 
 /** The id a session's streams share before the frame id. `unsubscribe` addresses this
@@ -20,15 +20,25 @@ export function structuredAgentSessionSubscriptionBase(ctx: RpcContext, sessionI
 
 /** One session's transcript stream. */
 export function structuredAgentSessionSubscriptionId(ctx: RpcContext, sessionId: string): string {
-  return withFrameId(ctx, structuredAgentSessionSubscriptionBase(ctx, sessionId))
+  return withFrameId(structuredAgentSessionSubscriptionBase(ctx, sessionId), ctx.requestId)
 }
 
-/** The status feed, which is per connection rather than per session. */
-export function structuredAgentSessionStatusSubscriptionId(ctx: RpcContext): string {
-  return withFrameId(ctx, `${SUBSCRIPTION_PREFIX}.status:${ctx.connectionId ?? 'local'}`)
+/** The status feed, which is per connection rather than per session. `frameId` addresses a
+ *  shared-control stream from its unsubscribe, which arrives under a different frame id. */
+export function structuredAgentSessionStatusSubscriptionId(
+  ctx: RpcContext,
+  frameId: string | undefined = ctx.requestId
+): string {
+  return withFrameId(`${SUBSCRIPTION_PREFIX}.status:${ctx.connectionId ?? 'local'}`, frameId)
 }
 
 /** The turn-completion feed, which like the status feed is per connection, not per session. */
-export function structuredAgentSessionTurnCompletionSubscriptionId(ctx: RpcContext): string {
-  return withFrameId(ctx, `${SUBSCRIPTION_PREFIX}.turn-completion:${ctx.connectionId ?? 'local'}`)
+export function structuredAgentSessionTurnCompletionSubscriptionId(
+  ctx: RpcContext,
+  frameId: string | undefined = ctx.requestId
+): string {
+  return withFrameId(
+    `${SUBSCRIPTION_PREFIX}.turn-completion:${ctx.connectionId ?? 'local'}`,
+    frameId
+  )
 }

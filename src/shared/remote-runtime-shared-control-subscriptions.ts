@@ -61,6 +61,16 @@ export function closeSharedControlLogicalSubscription(args: {
   if (!args.subscription) {
     return
   }
+  if (
+    cleanupWaitsForFirstResponse(args.subscription.method) &&
+    ((args.subscription.sent && !args.subscription.acknowledged) ||
+      args.subscription.awaitingResubscribe)
+  ) {
+    // Why: the host registers this stream only after an async open, so an earlier cleanup
+    // would find nothing and the stream would outlive its subscriber on the shared socket.
+    args.subscription.closeAfterReady = true
+    return
+  }
   const cleanup = getCleanupRequest(args.subscription)
   if (cleanup) {
     finishSharedControlSubscription(args.subscriptions, args.subscription, false)
@@ -106,11 +116,18 @@ export function replaySharedControlSubscriptions(args: {
   // connects deliver their initial snapshot through the normal gated path.
   tagReplayedResponses?: boolean
 }): void {
-  for (const subscription of args.subscriptions.values()) {
+  for (const subscription of Array.from(args.subscriptions.values())) {
     if (subscription.closeAfterReady) {
       continue
     }
+    if (closesOnReconnect(subscription.method)) {
+      // Why: replaying the opening cursor would re-deliver events the subscriber already
+      // applied; closing lets it reopen from its own current cursor, as a dropped socket does.
+      finishSharedControlSubscription(args.subscriptions, subscription, true)
+      continue
+    }
     subscription.sent = false
+    subscription.acknowledged = false
     subscription.remoteSubscriptionId = null
     // Why: mark the id-less window so a close() racing this resubscribe defers
     // to closeAfterReady instead of finishing locally and leaking the server
@@ -131,6 +148,14 @@ export function finishCloseAfterReadySubscriptions(
       finishSharedControlSubscription(subscriptions, subscription, false)
     }
   }
+}
+
+function cleanupWaitsForFirstResponse(method: string): boolean {
+  return method === 'agentSession.subscribe'
+}
+
+function closesOnReconnect(method: string): boolean {
+  return method === 'agentSession.subscribe'
 }
 
 function cleanupNeedsRemoteSubscriptionId(method: string): boolean {

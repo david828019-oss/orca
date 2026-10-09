@@ -346,6 +346,11 @@ export const UnsubscribeParams = z
   })
   .strict()
 
+/** Retires one shared-control status or turn-completion stream by the frame id that opened it. */
+export const FeedUnsubscribeParams = z
+  .object({ subscriptionId: Identifier('Invalid subscription id') })
+  .strict()
+
 /** Read-only owner classification retained for restart safety; mutation handoff is separate. */
 export const HandoffStatusParams = z.object({ sessionId: SessionId }).strict()
 

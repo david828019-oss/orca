@@ -33,6 +33,18 @@ export const CLEANUP_METHODS = [
     params: { sessionId: SESSION },
     hostCall: null,
     result: { unsubscribed: true }
+  },
+  {
+    method: 'agentSession.unsubscribeStatus',
+    params: { subscriptionId: 'frame-1' },
+    hostCall: null,
+    result: { unsubscribed: true }
+  },
+  {
+    method: 'agentSession.unsubscribeTurnCompletions',
+    params: { subscriptionId: 'frame-1' },
+    hostCall: null,
+    result: { unsubscribed: true }
   }
 ] as const
 

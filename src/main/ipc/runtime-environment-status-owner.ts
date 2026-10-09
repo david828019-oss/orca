@@ -58,7 +58,8 @@ export function createRuntimeEnvironmentStatusOwner(
       const accepted = applyRuntimeEnvironmentCapabilityVerdict({
         evidence,
         verdict: capable ? 'capable' : 'absent',
-        runtimeId: response._meta.runtimeId
+        runtimeId: response._meta.runtimeId,
+        hostCapabilities: response.result.capabilities ?? []
       })
       if (accepted && active && !isRuntimeEnvironmentManuallyDisconnected(environment.id)) {
         recordRuntimeEnvironmentUsage(userDataPath, environment.id, {
