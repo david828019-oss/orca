@@ -201,8 +201,14 @@ describe('registerRuntimeEnvironmentHandlers', () => {
     expect(sendRemoteRuntimeSharedControlRequestMock).not.toHaveBeenCalled()
   })
 
-  it('uses the cached request connection for terminal hot path RPCs', async () => {
+  it('uses the cached request connection for terminal hot path RPCs without shared control', async () => {
     registerRuntimeEnvironmentHandlers(store as never)
+    sendRemoteRuntimeRequestMock.mockResolvedValue({
+      id: 'status',
+      ok: true,
+      result: { runtimeId: 'runtime-remote', capabilities: [] },
+      _meta: { runtimeId: 'runtime-remote' }
+    })
     sendRemoteRuntimeConnectionRequestMock.mockResolvedValue({
       id: 'rpc-terminal',
       ok: true,
@@ -238,10 +244,19 @@ describe('registerRuntimeEnvironmentHandlers', () => {
       { terminal: 't1', text: 'a' },
       75
     )
-    expect(sendRemoteRuntimeRequestMock).not.toHaveBeenCalled()
+    expect(sendRemoteRuntimeRequestMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'terminal.send',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    )
+    expect(sendRemoteRuntimeSharedControlRequestMock).not.toHaveBeenCalled()
   })
 
-  it('keeps terminal hot path RPCs on the cached request connection when shared control is supported', async () => {
+  it('moves terminal hot path RPCs onto shared control when the runtime supports it', async () => {
     registerRuntimeEnvironmentHandlers(store as never)
     sendRemoteRuntimeRequestMock.mockResolvedValue({
       id: 'status',
@@ -252,7 +267,7 @@ describe('registerRuntimeEnvironmentHandlers', () => {
       },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    sendRemoteRuntimeConnectionRequestMock.mockResolvedValue({
+    sendRemoteRuntimeSharedControlRequestMock.mockResolvedValue({
       id: 'rpc-terminal',
       ok: true,
       result: { accepted: true },
@@ -286,22 +301,21 @@ describe('registerRuntimeEnvironmentHandlers', () => {
       })
     ).resolves.toMatchObject({ ok: true, result: { accepted: true } })
 
-    expect(sendRemoteRuntimeConnectionRequestMock).toHaveBeenCalledWith(
+    expect(sendRemoteRuntimeSharedControlRequestMock).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ endpoint: 'ws://127.0.0.1:6768' }),
       'terminal.send',
       { terminal: 't1', text: 'a' },
       75
     )
-    expect(sendRemoteRuntimeConnectionRequestMock).toHaveBeenCalledWith(
+    expect(sendRemoteRuntimeSharedControlRequestMock).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ endpoint: 'ws://127.0.0.1:6768' }),
       'terminal.updateViewport',
       { terminal: 't1', cols: 120, rows: 40 },
       75
     )
-    expect(sendRemoteRuntimeRequestMock).not.toHaveBeenCalled()
-    expect(sendRemoteRuntimeSharedControlRequestMock).not.toHaveBeenCalled()
+    expect(sendRemoteRuntimeConnectionRequestMock).not.toHaveBeenCalled()
   })
 
   it('routes one-shot RPC calls through shared control when the runtime advertises support', async () => {
