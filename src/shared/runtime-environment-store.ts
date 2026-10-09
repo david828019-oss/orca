@@ -48,6 +48,7 @@ export function addEnvironmentFromPairingCode(
     now?: number
     source?: RuntimeEnvironmentSource
     connectionDependency?: 'ssh-tunnel'
+    sshTunnelTargetId?: string
   }
 ): KnownRuntimeEnvironment {
   const offer = parsePairingCode(args.pairingCode)
@@ -73,7 +74,7 @@ export function addEnvironmentFromPairingCode(
     offer,
     runtimeId: null,
     ...(args.source ? { source: args.source } : {}),
-    ...getPairingConnectionDependency(args.connectionDependency, offer)
+    ...getPairingConnectionDependency(args, offer)
   })
   const next = {
     version: 1 as const,
@@ -119,7 +120,7 @@ export function updateEnvironmentFromPairingCode(
     offer,
     runtimeId: existing.runtimeId,
     ...(existing.source ? { source: existing.source } : {}),
-    ...getPairingConnectionDependency(existing.connectionDependency, offer)
+    ...getPairingConnectionDependency(existing, offer)
   })
   const next = {
     ...environment,
@@ -138,16 +139,19 @@ export function updateEnvironmentFromPairingCode(
 }
 
 function getPairingConnectionDependency(
-  dependency: 'ssh-tunnel' | undefined,
+  source: { connectionDependency?: 'ssh-tunnel'; sshTunnelTargetId?: string },
   offer: PairingOffer
-): { connectionDependency?: 'ssh-tunnel' } {
-  if (!dependency) {
+): { connectionDependency?: 'ssh-tunnel'; sshTunnelTargetId?: string } {
+  if (!source.connectionDependency) {
     return {}
   }
   try {
     const endpoint = new URL(offer.endpoint)
     return classifyRemotePairingHostname(endpoint.hostname) === 'loopback'
-      ? { connectionDependency: dependency }
+      ? {
+          connectionDependency: source.connectionDependency,
+          ...(source.sshTunnelTargetId ? { sshTunnelTargetId: source.sshTunnelTargetId } : {})
+        }
       : {}
   } catch {
     return {}

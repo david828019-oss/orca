@@ -46,7 +46,10 @@ export function useRuntimeEnvironmentMutationActions({
     setAddServerFailure(null)
   }
 
-  const addEnvironment = async (allowLoopback: boolean): Promise<void> => {
+  const addEnvironment = async (
+    allowLoopback: boolean,
+    sshTunnelTargetId: string | null = null
+  ): Promise<void> => {
     const trimmedName = name.trim()
     const trimmedPairingCode = pairingCode.trim()
     if (!trimmedName || !trimmedPairingCode) {
@@ -77,7 +80,8 @@ export function useRuntimeEnvironmentMutationActions({
       const result = await window.api.runtimeEnvironments.verifyAndAddFromPairingCode({
         name: trimmedName,
         pairingCode: trimmedPairingCode,
-        allowLoopback
+        allowLoopback,
+        ...(sshTunnelTargetId ? { sshTunnelTargetId } : {})
       })
       if (!result.ok) {
         if (mountedRef.current) {

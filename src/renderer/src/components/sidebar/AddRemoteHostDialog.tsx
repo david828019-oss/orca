@@ -56,6 +56,7 @@ export function AddRemoteHostDialog({
   const [serverName, setServerName] = useState('')
   const [pairingCode, setPairingCode] = useState('')
   const [allowLoopback, setAllowLoopback] = useState(false)
+  const [sshTunnelTargetId, setSshTunnelTargetId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const configSearchGeneration = useRef(0)
   const configSearchQuery = useRef('')
@@ -95,6 +96,7 @@ export function AddRemoteHostDialog({
     setServerName('')
     setPairingCode('')
     setAllowLoopback(false)
+    setSshTunnelTargetId(null)
   }
 
   const close = () => {
@@ -268,7 +270,8 @@ export function AddRemoteHostDialog({
       const result = await window.api.runtimeEnvironments.verifyAndAddFromPairingCode({
         name: trimmedName,
         pairingCode: trimmedPairingCode,
-        allowLoopback
+        allowLoopback,
+        ...(allowLoopback && sshTunnelTargetId ? { sshTunnelTargetId } : {})
       })
       if (!result.ok) {
         toast.error(
@@ -364,6 +367,8 @@ export function AddRemoteHostDialog({
               setAllowLoopback(false)
             }}
             onAllowLoopbackChange={setAllowLoopback}
+            sshTunnelTargetId={sshTunnelTargetId}
+            onSshTunnelTargetIdChange={setSshTunnelTargetId}
             onSubmit={() => void saveRemoteServer()}
             onCancel={close}
           />

@@ -89,6 +89,7 @@ export type RuntimeApi = {
       name: string
       pairingCode: string
       allowLoopback?: boolean
+      sshTunnelTargetId?: string
     }) => Promise<VerifyAndAddRuntimeEnvironmentResult>
     resolve: (args: { selector: string }) => Promise<PublicKnownRuntimeEnvironment>
     remove: (args: { selector: string }) => Promise<{ removed: PublicKnownRuntimeEnvironment }>

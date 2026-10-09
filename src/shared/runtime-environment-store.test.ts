@@ -111,6 +111,28 @@ describe('runtime environment store', () => {
     expect(direct).not.toHaveProperty('connectionDependency')
   })
 
+  it('keeps the Orca-managed tunnel host across a loopback re-pair and drops it off loopback', () => {
+    const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-env-store-'))
+    tempDirs.push(userDataPath)
+    const environment = addEnvironmentFromPairingCode(userDataPath, {
+      name: 'managed tunnel box',
+      pairingCode: pairingCode(),
+      connectionDependency: 'ssh-tunnel',
+      sshTunnelTargetId: 'ssh-target-1'
+    })
+    expect(environment.sshTunnelTargetId).toBe('ssh-target-1')
+
+    const repaired = updateEnvironmentFromPairingCode(userDataPath, environment.id, {
+      pairingCode: pairingCode('ws://127.0.0.1:6769')
+    })
+    expect(repaired.sshTunnelTargetId).toBe('ssh-target-1')
+
+    const moved = updateEnvironmentFromPairingCode(userDataPath, environment.id, {
+      pairingCode: pairingCode('ws://192.0.2.10:6768')
+    })
+    expect(moved).not.toHaveProperty('sshTunnelTargetId')
+  })
+
   it('throttles lastUsedAt writes so it does not rewrite the store on every runtime call', () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-env-store-'))
     tempDirs.push(userDataPath)

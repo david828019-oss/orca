@@ -7,6 +7,7 @@ import { Button } from '../ui/button'
 import { Checkbox } from '../ui/checkbox'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
+import { RuntimeServerSshTunnelTargetSelect } from './RuntimeServerSshTunnelTargetSelect'
 import { translate } from '@/i18n/i18n'
 import {
   translateHostAccessLinkError,
@@ -27,7 +28,7 @@ type RuntimeHostAccessFormProps = {
   onNameChange: (value: string) => void
   onAccessLinkChange: (value: string) => void
   onCancel: () => void
-  onSubmit: (allowLoopback: boolean) => void
+  onSubmit: (allowLoopback: boolean, sshTunnelTargetId: string | null) => void
 }
 
 export function RuntimeHostAccessForm({
@@ -41,6 +42,7 @@ export function RuntimeHostAccessForm({
   onSubmit
 }: RuntimeHostAccessFormProps): React.JSX.Element {
   const [allowLoopback, setAllowLoopback] = useState(false)
+  const [sshTunnelTargetId, setSshTunnelTargetId] = useState<string | null>(null)
   const parsed = useMemo(() => parseHostAccessLink(accessLink), [accessLink])
   const tunnelOverrideEnabled =
     allowLoopback && parsed.ok && parsed.value.endpointKind === 'loopback'
@@ -62,7 +64,7 @@ export function RuntimeHostAccessForm({
       onSubmit={(event) => {
         event.preventDefault()
         if (canSubmit) {
-          onSubmit(tunnelOverrideEnabled)
+          onSubmit(tunnelOverrideEnabled, tunnelOverrideEnabled ? sshTunnelTargetId : null)
         }
       }}
     >
@@ -291,27 +293,36 @@ export function RuntimeHostAccessForm({
           <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
         </summary>
         {parsed.ok && parsed.value.endpointKind === 'loopback' ? (
-          <label className="mt-3 flex items-start gap-2 rounded-md border border-border/60 p-3">
-            <Checkbox
-              checked={allowLoopback}
-              disabled={busy}
-              onCheckedChange={(checked) => setAllowLoopback(checked === true)}
-            />
-            <span className="space-y-1">
-              <span className="block font-medium text-foreground">
-                {translate(
-                  'auto.components.settings.RuntimeHostAccessForm.sshTunnel',
-                  'I am using an SSH tunnel to this local address'
-                )}
+          <div className="mt-3 rounded-md border border-border/60 p-3">
+            <label className="flex items-start gap-2">
+              <Checkbox
+                checked={allowLoopback}
+                disabled={busy}
+                onCheckedChange={(checked) => setAllowLoopback(checked === true)}
+              />
+              <span className="space-y-1">
+                <span className="block font-medium text-foreground">
+                  {translate(
+                    'auto.components.settings.RuntimeHostAccessForm.sshTunnel',
+                    'I am using an SSH tunnel to this local address'
+                  )}
+                </span>
+                <span className="block text-muted-foreground">
+                  {translate(
+                    'auto.components.settings.RuntimeHostAccessForm.sshTunnelHelp',
+                    'Keep the tunnel active while using this connection.'
+                  )}
+                </span>
               </span>
-              <span className="block text-muted-foreground">
-                {translate(
-                  'auto.components.settings.RuntimeHostAccessForm.sshTunnelHelp',
-                  'Keep the tunnel active while using this connection.'
-                )}
-              </span>
-            </span>
-          </label>
+            </label>
+            {allowLoopback ? (
+              <RuntimeServerSshTunnelTargetSelect
+                value={sshTunnelTargetId}
+                disabled={busy}
+                onChange={setSshTunnelTargetId}
+              />
+            ) : null}
+          </div>
         ) : (
           <p className="mt-2 text-muted-foreground">
             {translate(

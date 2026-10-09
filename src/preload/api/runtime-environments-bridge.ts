@@ -37,6 +37,7 @@ export const runtimeEnvironmentsApi = {
     name: string
     pairingCode: string
     allowLoopback?: boolean
+    sshTunnelTargetId?: string
   }): Promise<VerifyAndAddRuntimeEnvironmentResult> =>
     ipcRenderer.invoke('runtimeEnvironments:verifyAndAddFromPairingCode', args),
   resolve: (args: { selector: string }): Promise<PublicKnownRuntimeEnvironment> =>

@@ -27,6 +27,8 @@ describe('RemoteServerFields', () => {
         onPairingCodeChange={vi.fn()}
         allowLoopback={false}
         onAllowLoopbackChange={vi.fn()}
+        sshTunnelTargetId={null}
+        onSshTunnelTargetIdChange={vi.fn()}
         onSubmit={vi.fn()}
       />
     )

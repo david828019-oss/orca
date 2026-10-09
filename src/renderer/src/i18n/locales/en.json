@@ -12223,6 +12223,11 @@
           "usageLabel": "Usage",
           "noAllowance": "Cursor reported no usage allowance for this account.",
           "staleUsage": "Last known usage — the latest refresh failed: {{reason}}"
+        },
+        "RuntimeServerSshTunnelTargetSelect": {
+          "label": "Open the tunnel through",
+          "selfManaged": "I run the tunnel myself",
+          "help": "Orca forwards this port over that SSH host and reopens it when the connection comes back."
         }
       },
       "right": {

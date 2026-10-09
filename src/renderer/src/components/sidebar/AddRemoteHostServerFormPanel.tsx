@@ -14,6 +14,8 @@ export function AddRemoteHostServerFormPanel({
   onNameChange,
   onPairingCodeChange,
   onAllowLoopbackChange,
+  sshTunnelTargetId,
+  onSshTunnelTargetIdChange,
   onSubmit,
   onCancel
 }: {
@@ -26,6 +28,8 @@ export function AddRemoteHostServerFormPanel({
   onNameChange: (value: string) => void
   onPairingCodeChange: (value: string) => void
   onAllowLoopbackChange: (value: boolean) => void
+  sshTunnelTargetId: string | null
+  onSshTunnelTargetIdChange: (value: string | null) => void
   onSubmit: () => void
   onCancel: () => void
 }): React.JSX.Element {
@@ -55,6 +59,8 @@ export function AddRemoteHostServerFormPanel({
         onPairingCodeChange={onPairingCodeChange}
         allowLoopback={allowLoopback}
         onAllowLoopbackChange={onAllowLoopbackChange}
+        sshTunnelTargetId={sshTunnelTargetId}
+        onSshTunnelTargetIdChange={onSshTunnelTargetIdChange}
         onSubmit={onSubmit}
       />
 
