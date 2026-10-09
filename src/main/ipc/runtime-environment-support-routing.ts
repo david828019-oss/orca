@@ -25,6 +25,11 @@ import {
   sendRemoteRuntimeSharedControlRequestAbortable
 } from './runtime-environment-abortable-requests'
 import { subscribeRemoteRuntimeSharedControlRequest } from './runtime-environment-request-connections'
+import {
+  canRouteOverSharedControl,
+  isAgentStreamMethod,
+  withSharedControlStreamParams
+} from './runtime-environment-agent-stream-routing'
 
 type SupportRoute = {
   environment: KnownRuntimeEnvironment
@@ -60,7 +65,8 @@ export function shouldRouteSubscriptionBySupport(method: string): boolean {
     method === 'session.tabs.subscribeAll' ||
     method === 'accounts.subscribe' ||
     method === 'notifications.subscribe' ||
-    method === 'files.watch'
+    method === 'files.watch' ||
+    isAgentStreamMethod(method)
   )
 }
 
@@ -140,28 +146,38 @@ export async function subscribeSupportRoutedRuntimeEnvironment(args: {
     isCurrent: args.isCurrent,
     supported: (route) => {
       supportOutcome = route.outcome
+      if (
+        route.outcome.kind === 'supported' &&
+        !canRouteOverSharedControl(args.method, route.outcome.hostCapabilities)
+      ) {
+        return subscribeDedicated(route)
+      }
       return subscribeRemoteRuntimeSharedControlRequest(
         args.environment.id,
         route.pairing,
         args.method,
-        args.params,
+        withSharedControlStreamParams(args.method, args.params),
         args.timeoutMs,
         callbacks
       )
     },
     unsupported: (route) => {
       supportOutcome = route.outcome
-      return subscribeRemoteRuntimeRequest(
-        route.pairing,
-        args.method,
-        args.params,
-        args.timeoutMs,
-        callbacks,
-        { clientCapabilities: ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES }
-      )
+      return subscribeDedicated(route)
     }
   })
   return routed.subscription
+
+  function subscribeDedicated(route: SupportRoute): Promise<RemoteRuntimeSubscription> {
+    return subscribeRemoteRuntimeRequest(
+      route.pairing,
+      args.method,
+      args.params,
+      args.timeoutMs,
+      callbacks,
+      { clientCapabilities: ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES }
+    )
+  }
 }
 
 export async function routeRuntimeEnvironmentCallBySupport(args: {

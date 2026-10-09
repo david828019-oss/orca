@@ -20,6 +20,8 @@ export const REWIND_METHOD = 'agentSession.rewind'
 export const CONVERSATION_OUTLINE_METHOD = 'agentSession.conversationOutline'
 export const STATUS_FEED_METHOD = 'agentSession.subscribeStatus'
 export const TURN_COMPLETION_FEED_METHOD = 'agentSession.subscribeTurnCompletions'
+export const STATUS_FEED_UNSUBSCRIBE_METHOD = 'agentSession.unsubscribeStatus'
+export const TURN_COMPLETION_FEED_UNSUBSCRIBE_METHOD = 'agentSession.unsubscribeTurnCompletions'
 
 let operations = 0
 
@@ -166,7 +168,13 @@ export const STRUCTURED_CALLS: {
   },
   // Teardown runs through the runtime's subscription registry rather than the
   // host, so its reply is the only signal that the gate opened.
-  { method: 'agentSession.unsubscribe', hostMethod: null, result: { unsubscribed: true } }
+  { method: 'agentSession.unsubscribe', hostMethod: null, result: { unsubscribed: true } },
+  { method: STATUS_FEED_UNSUBSCRIBE_METHOD, hostMethod: null, result: { unsubscribed: true } },
+  {
+    method: TURN_COMPLETION_FEED_UNSUBSCRIBE_METHOD,
+    hostMethod: null,
+    result: { unsubscribed: true }
+  }
 ]
 
 export function envelope(args: {
@@ -276,6 +284,9 @@ export function paramsFor(method: string): unknown {
     case 'agentSession.restartContinue':
       // Whole-surface calls: they name no session, and resume/continue narrow by an optional list.
       return {}
+    case STATUS_FEED_UNSUBSCRIBE_METHOD:
+    case TURN_COMPLETION_FEED_UNSUBSCRIBE_METHOD:
+      return { subscriptionId: 'frame-1' }
     default:
       return { sessionId: SESSION }
   }

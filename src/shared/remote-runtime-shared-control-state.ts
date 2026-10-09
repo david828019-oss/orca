@@ -145,6 +145,7 @@ export function handleSharedControlSubscriptionResponse(
     subscription.sent = false
   }
   if (response.ok) {
+    subscription.acknowledged = true
     const subscriptionId = getSubscriptionId(response.result)
     if (subscriptionId) {
       subscription.remoteSubscriptionId = subscriptionId

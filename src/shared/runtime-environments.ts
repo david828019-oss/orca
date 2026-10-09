@@ -31,6 +31,8 @@ export const KnownRuntimeEnvironmentSchema = z.object({
   runtimeId: z.string().min(1).nullable(),
   source: RuntimeEnvironmentSourceSchema.optional(),
   connectionDependency: z.literal('ssh-tunnel').optional(),
+  // Saved SSH target Orca forwards the loopback endpoint through; unset means the user runs the tunnel.
+  sshTunnelTargetId: z.string().min(1).optional(),
   endpoints: z.array(RuntimeAccessEndpointSchema).min(1),
   preferredEndpointId: z.string().min(1)
 })
@@ -67,6 +69,7 @@ export function createEnvironmentFromPairingOffer(args: {
   runtimeId?: string | null
   source?: RuntimeEnvironmentSource
   connectionDependency?: 'ssh-tunnel'
+  sshTunnelTargetId?: string
 }): KnownRuntimeEnvironment {
   const endpointId = `ws-${args.id}`
   return KnownRuntimeEnvironmentSchema.parse({
@@ -80,6 +83,9 @@ export function createEnvironmentFromPairingOffer(args: {
     runtimeId: args.runtimeId ?? null,
     ...(args.source ? { source: args.source } : {}),
     ...(args.connectionDependency ? { connectionDependency: args.connectionDependency } : {}),
+    ...(args.connectionDependency && args.sshTunnelTargetId
+      ? { sshTunnelTargetId: args.sshTunnelTargetId }
+      : {}),
     endpoints: [
       {
         id: endpointId,

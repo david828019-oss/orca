@@ -12056,6 +12056,11 @@
           "usageDescription": "Cursor 按两个随账单周期重置的额度池计费，用完后按需计费。",
           "usageLabel": "用量",
           "usageTitle": "每月套餐用量"
+        },
+        "RuntimeServerSshTunnelTargetSelect": {
+          "label": "通过以下主机打开隧道",
+          "selfManaged": "我自己运行隧道",
+          "help": "Orca 会通过该 SSH 主机转发此端口，并在连接恢复后重新打开。"
         }
       },
       "right": {

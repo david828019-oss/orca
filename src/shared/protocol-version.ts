@@ -203,6 +203,11 @@ export const AGENT_SESSION_TURN_COMPLETION_RUNTIME_CAPABILITY =
 // older host leaves the message rail on loaded messages instead of answering method_not_found.
 export const AGENT_SESSION_CONVERSATION_OUTLINE_RUNTIME_CAPABILITY =
   'agent-session.conversation-outline.v1' as const
+// Why: a shared-control socket outlives its streams, so the host must retire each agentSession and
+// nativeChat stream by frame id. Older hosts only reap them on socket close, so clients keep the
+// dedicated socket for those.
+export const AGENT_SESSION_SHARED_CONTROL_STREAMS_RUNTIME_CAPABILITY =
+  'agent-session.shared-control-streams.v1' as const
 // The RPC is registered unconditionally; per-session rewind support is a separate check.
 export const AGENT_SESSION_REWIND_RUNTIME_CAPABILITY = 'agent-session.rewind.v1' as const
 // Readers must understand a monitoring roster with no available stop control.
@@ -394,6 +399,7 @@ export const RUNTIME_CAPABILITIES = [
   AGENT_SESSION_TURN_COMPLETION_RUNTIME_CAPABILITY,
   AGENT_SESSION_REWIND_RUNTIME_CAPABILITY,
   AGENT_SESSION_CONVERSATION_OUTLINE_RUNTIME_CAPABILITY,
+  AGENT_SESSION_SHARED_CONTROL_STREAMS_RUNTIME_CAPABILITY,
   AGENT_SESSION_BACKGROUND_TASK_STOP_CAPABILITY,
   AGENT_SESSION_PROMPT_CANCEL_RUNTIME_CAPABILITY,
   AGENT_SESSION_QUESTION_ANSWERS_RUNTIME_CAPABILITY,

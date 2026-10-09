@@ -27,6 +27,7 @@ import {
   AGENT_SESSION_QUESTION_ANSWERS_RUNTIME_CAPABILITY,
   AGENT_SESSION_REWIND_RUNTIME_CAPABILITY,
   AGENT_SESSION_CONVERSATION_OUTLINE_RUNTIME_CAPABILITY,
+  AGENT_SESSION_SHARED_CONTROL_STREAMS_RUNTIME_CAPABILITY,
   AGENT_SESSION_STATUS_FEED_RUNTIME_CAPABILITY,
   STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
 } from '../../../src/shared/protocol-version'
@@ -44,6 +45,7 @@ import {
   resetOperationIds,
   REWIND_METHOD,
   CONVERSATION_OUTLINE_METHOD,
+  STATUS_FEED_UNSUBSCRIBE_METHOD,
   envelope,
   STATUS_FEED_METHOD,
   sendParams,
@@ -285,6 +287,10 @@ describe('cross-version structured agent sessions', () => {
         expect(
           build.capabilities.includes(AGENT_SESSION_CONVERSATION_OUTLINE_RUNTIME_CAPABILITY)
         ).toBe(build.methodNames.includes(CONVERSATION_OUTLINE_METHOD))
+        // A client routes agent streams onto shared control only where it can retire them there.
+        expect(
+          build.capabilities.includes(AGENT_SESSION_SHARED_CONTROL_STREAMS_RUNTIME_CAPABILITY)
+        ).toBe(build.methodNames.includes(STATUS_FEED_UNSUBSCRIBE_METHOD))
       }
       // Additive surface: bumping the protocol number would strand every paired
       // device on this release rather than degrade one feature.

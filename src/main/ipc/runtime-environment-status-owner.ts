@@ -20,6 +20,7 @@ import {
   captureRuntimeEnvironmentCapabilityEvidence
 } from './runtime-environment-capability-evidence'
 import { isRuntimeEnvironmentManuallyDisconnected } from './runtime-environment-manual-disconnect'
+import { ensureRuntimeEnvironmentSshTunnel } from './runtime-environment-ssh-tunnel-hook'
 
 export function createRuntimeEnvironmentStatusOwner(
   userDataPath: string,
@@ -36,7 +37,10 @@ export function createRuntimeEnvironmentStatusOwner(
   return new RuntimeHostStatusOwner({
     environmentId: environment.id,
     pairingRevision: environment.pairingRevision ?? environment.createdAt,
-    request: (signal) => {
+    request: async (signal) => {
+      // Why: every connection to this environment starts with a status probe, so the forward
+      // an Orca-managed tunnel needs is opened (or reopened) here first.
+      await ensureRuntimeEnvironmentSshTunnel(environment, pairing.endpoint)
       evidence = captureRuntimeEnvironmentCapabilityEvidence(environment.id, pairing)
       return transport.isReady() &&
         getAcceptedRuntimeEnvironmentCapabilityOutcome(environment.id, pairing, null)?.kind ===
@@ -58,7 +62,8 @@ export function createRuntimeEnvironmentStatusOwner(
       const accepted = applyRuntimeEnvironmentCapabilityVerdict({
         evidence,
         verdict: capable ? 'capable' : 'absent',
-        runtimeId: response._meta.runtimeId
+        runtimeId: response._meta.runtimeId,
+        hostCapabilities: response.result.capabilities ?? []
       })
       if (accepted && active && !isRuntimeEnvironmentManuallyDisconnected(environment.id)) {
         recordRuntimeEnvironmentUsage(userDataPath, environment.id, {

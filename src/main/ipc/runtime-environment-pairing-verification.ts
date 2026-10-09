@@ -12,11 +12,14 @@ import { sendRemoteRuntimeRequest } from '../../shared/remote-runtime-client'
 import { ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES } from '../../shared/protocol-version'
 import { redactRuntimeEnvironment } from '../../shared/runtime-environments'
 import type { RuntimeStatus } from '../../shared/runtime-types'
+import { ensureRuntimeEnvironmentSshTunnel } from './runtime-environment-ssh-tunnel-hook'
 
 type VerifyAndAddRuntimeEnvironmentArgs = {
   name: string
   pairingCode: string
   allowLoopback?: boolean
+  // Saved SSH target Orca opens the loopback tunnel through; only honored with allowLoopback.
+  sshTunnelTargetId?: string
 }
 
 export async function verifyAndAddRuntimeEnvironmentFromPairingCode(
@@ -35,8 +38,14 @@ export async function verifyAndAddRuntimeEnvironmentFromPairingCode(
     }
   }
 
+  const usesSshTunnel = parsed.value.endpointKind === 'loopback' && args.allowLoopback === true
+  const sshTunnelTargetId = usesSshTunnel ? args.sshTunnelTargetId : undefined
   let runtimeStatus: RuntimeStatus
   try {
+    await ensureRuntimeEnvironmentSshTunnel(
+      { name: args.name, sshTunnelTargetId },
+      parsed.value.pairing.endpoint
+    )
     const response = await sendRemoteRuntimeRequest<RuntimeStatus>(
       parsed.value.pairing,
       'status.get',
@@ -62,12 +71,12 @@ export async function verifyAndAddRuntimeEnvironmentFromPairingCode(
     return classifyPairingVerificationError(error, parsed.value.displayEndpoint)
   }
 
-  const usesSshTunnel = parsed.value.endpointKind === 'loopback' && args.allowLoopback === true
   let environment: ReturnType<typeof addEnvironmentFromPairingCode>
   try {
     environment = addEnvironmentFromPairingCode(userDataPath, {
       ...args,
-      ...(usesSshTunnel ? { connectionDependency: 'ssh-tunnel' as const } : {})
+      ...(usesSshTunnel ? { connectionDependency: 'ssh-tunnel' as const } : {}),
+      ...(sshTunnelTargetId ? { sshTunnelTargetId } : {})
     })
   } catch (error) {
     return {

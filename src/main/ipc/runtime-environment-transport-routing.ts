@@ -17,7 +17,8 @@ import { enqueueRuntimeCall } from './runtime-environment-call-queue'
 import { getRuntimeEnvironmentStatusOwner } from './runtime-environment-request-connections'
 import {
   sendRemoteRuntimeConnectionRequestAbortable,
-  sendRemoteRuntimeRequestAbortable
+  sendRemoteRuntimeRequestAbortable,
+  sendRemoteRuntimeSharedControlRequestAbortable
 } from './runtime-environment-abortable-requests'
 import { attachRemoteControlDiagnostics } from './runtime-environment-status-diagnostics'
 
@@ -27,6 +28,7 @@ import { withTailscaleHintForResponse } from './runtime-environment-tailscale-re
 import { resetSharedControlSupport } from './runtime-environment-shared-control-support'
 import {
   executeSupportRoutedCall,
+  routeRuntimeEnvironmentCallBySupport,
   shouldRouteCallBySupport,
   shouldRouteSubscriptionBySupport,
   subscribeSupportRoutedRuntimeEnvironment
@@ -122,16 +124,37 @@ export async function callRuntimeEnvironment(
           return response
         }
         if (shouldUseCachedRequestConnection(method)) {
-          const response = await sendRemoteRuntimeConnectionRequestAbortable(
-            currentEnvironment.id,
-            pairing,
+          // Why: terminal input rides shared control when the host has it; the cached
+          // connection only serves hosts without it, so no second idle socket stays open.
+          return routeRuntimeEnvironmentCallBySupport({
+            userDataPath,
+            initialEnvironment: currentEnvironment,
             method,
-            params,
-            effectiveTimeoutMs,
-            options?.signal
-          )
-          markEnvironmentUsedFromResponse(userDataPath, currentEnvironment.id, response)
-          return response
+            timeoutMs: effectiveTimeoutMs,
+            expectedPairingRevision: expectedEnvironmentPairingRevision,
+            signal: options?.signal,
+            supported: (route) =>
+              sendRemoteRuntimeSharedControlRequestAbortable(
+                route.environment.id,
+                route.pairing,
+                method,
+                params,
+                effectiveTimeoutMs,
+                undefined,
+                options?.signal
+              ),
+            unsupported: (route) =>
+              sendRemoteRuntimeConnectionRequestAbortable(
+                route.environment.id,
+                route.pairing,
+                method,
+                params,
+                effectiveTimeoutMs,
+                options?.signal
+              ),
+            markUsed: (environmentId, response) =>
+              markEnvironmentUsedFromResponse(userDataPath, environmentId, response)
+          })
         }
         if (shouldRouteCallBySupport(method)) {
           return executeSupportRoutedCall({

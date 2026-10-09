@@ -10,7 +10,13 @@ export type RuntimeEnvironmentCapabilityEvidence = {
 }
 
 export type RuntimeEnvironmentCapabilityOutcome =
-  | { kind: 'supported'; evidence: RuntimeEnvironmentCapabilityEvidence; runtimeId: string }
+  | {
+      kind: 'supported'
+      evidence: RuntimeEnvironmentCapabilityEvidence
+      runtimeId: string
+      // Why: shared-control routing for some methods also depends on what that same host advertises.
+      hostCapabilities: readonly string[]
+    }
   | { kind: 'unsupported'; evidence: RuntimeEnvironmentCapabilityEvidence; runtimeId: string }
   | { kind: 'stale_incarnation' }
 
@@ -18,6 +24,7 @@ type AcceptedEvidence = {
   evidence: RuntimeEnvironmentCapabilityEvidence
   verdict: RuntimeEnvironmentCapabilityVerdict
   runtimeId: string
+  hostCapabilities: readonly string[]
 }
 
 type EvidenceState = {
@@ -68,6 +75,7 @@ export function applyRuntimeEnvironmentCapabilityVerdict(args: {
   evidence: RuntimeEnvironmentCapabilityEvidence
   verdict: RuntimeEnvironmentCapabilityVerdict
   runtimeId: string
+  hostCapabilities?: readonly string[]
 }): boolean {
   const state = stateFor(args.evidence.environmentId)
   if (
@@ -79,7 +87,8 @@ export function applyRuntimeEnvironmentCapabilityVerdict(args: {
   state.accepted = {
     evidence: args.evidence,
     verdict: args.verdict,
-    runtimeId: args.runtimeId
+    runtimeId: args.runtimeId,
+    hostCapabilities: args.hostCapabilities ?? []
   }
   return true
 }
@@ -87,13 +96,12 @@ export function applyRuntimeEnvironmentCapabilityVerdict(args: {
 export function runtimeEnvironmentCapabilityOutcome(
   evidence: RuntimeEnvironmentCapabilityEvidence,
   verdict: RuntimeEnvironmentCapabilityVerdict,
-  runtimeId: string
+  runtimeId: string,
+  hostCapabilities: readonly string[] = []
 ): RuntimeEnvironmentCapabilityOutcome {
-  return {
-    kind: verdict === 'capable' ? 'supported' : 'unsupported',
-    evidence,
-    runtimeId
-  }
+  return verdict === 'capable'
+    ? { kind: 'supported', evidence, runtimeId, hostCapabilities }
+    : { kind: 'unsupported', evidence, runtimeId }
 }
 
 export function getAcceptedRuntimeEnvironmentCapabilityOutcome(
@@ -112,7 +120,8 @@ export function getAcceptedRuntimeEnvironmentCapabilityOutcome(
   return runtimeEnvironmentCapabilityOutcome(
     accepted.evidence,
     accepted.verdict,
-    accepted.runtimeId
+    accepted.runtimeId,
+    accepted.hostCapabilities
   )
 }
 

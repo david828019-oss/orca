@@ -12,6 +12,7 @@ import {
   portForwardManager
 } from './ssh-ipc-context'
 import { restorePortForwards } from './ssh-port-forward-persistence'
+import { reopenSshRuntimeEnvironmentTunnels } from './ssh-runtime-environment-tunnel'
 import {
   clearRelayLostBackoff,
   RELAY_LOST_BASE_DELAY_MS,
@@ -176,7 +177,9 @@ export function configureRelaySessionCallbacks(session: SshRelaySession): void {
       })
     }
     currentRuntime?.notifySshRelayReady?.(tid)
-    void restorePortForwards(tid, getCurrentMainWindow)
+    void restorePortForwards(tid, getCurrentMainWindow).then(() =>
+      reopenSshRuntimeEnvironmentTunnels(tid)
+    )
   })
 }
 

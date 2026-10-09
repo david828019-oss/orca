@@ -89,6 +89,10 @@ export function getCleanupRequest(
         : subscription.params
     return { method: 'session.tabs.unsubscribe', params }
   }
+  const agentStreamCleanup = getAgentStreamCleanupRequest(subscription)
+  if (agentStreamCleanup) {
+    return agentStreamCleanup
+  }
   if (subscription.method === 'session.tabs.subscribeAll') {
     return {
       method: 'session.tabs.unsubscribeAll',
@@ -96,6 +100,46 @@ export function getCleanupRequest(
     }
   }
   return null
+}
+
+// Why: these hosts key each stream by the frame that opened it, so the cleanup names that frame.
+function getAgentStreamCleanupRequest(
+  subscription: SharedControlLogicalSubscription<unknown>
+): { method: string; params: unknown } | null {
+  switch (subscription.method) {
+    case 'agentSession.subscribe': {
+      const sessionId = readStringParam(subscription.params, 'sessionId')
+      return sessionId
+        ? {
+            method: 'agentSession.unsubscribe',
+            params: { sessionId, subscriptionId: subscription.requestId }
+          }
+        : null
+    }
+    case 'agentSession.subscribeStatus':
+      return cleanupBySubscriptionId('agentSession.unsubscribeStatus', subscription.requestId)
+    case 'agentSession.subscribeTurnCompletions':
+      return cleanupBySubscriptionId(
+        'agentSession.unsubscribeTurnCompletions',
+        subscription.requestId
+      )
+    case 'nativeChat.subscribe': {
+      const subscriptionId = readStringParam(subscription.params, 'subscriptionId')
+      return subscriptionId
+        ? cleanupBySubscriptionId('nativeChat.unsubscribe', subscriptionId)
+        : null
+    }
+    default:
+      return null
+  }
+}
+
+function readStringParam(params: unknown, key: 'sessionId' | 'subscriptionId'): string | null {
+  if (typeof params !== 'object' || params === null || !(key in params)) {
+    return null
+  }
+  const value: unknown = Object.getOwnPropertyDescriptor(params, key)?.value
+  return typeof value === 'string' && value.length > 0 ? value : null
 }
 
 export function formatSharedControlCloseMessage(code: number, reason: Buffer): string {
@@ -161,7 +205,9 @@ export function toRemoteRuntimeClientError(error: unknown): RemoteRuntimeClientE
       typeof error === 'object' && error !== null && 'data' in error
         ? (error as { data?: unknown }).data
         : undefined
-    return new RemoteRuntimeClientError('runtime_error', error.message, { data })
+    return new RemoteRuntimeClientError('runtime_error', error.message, {
+      data
+    })
   }
   return new RemoteRuntimeClientError('runtime_error', String(error))
 }

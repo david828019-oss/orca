@@ -1,3 +1,4 @@
+import { RuntimeServerSshTunnelTargetSelect } from '../settings/RuntimeServerSshTunnelTargetSelect'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -148,6 +149,8 @@ export function RemoteServerFields({
   onPairingCodeChange,
   allowLoopback,
   onAllowLoopbackChange,
+  sshTunnelTargetId,
+  onSshTunnelTargetIdChange,
   onSubmit
 }: {
   name: string
@@ -158,6 +161,8 @@ export function RemoteServerFields({
   onPairingCodeChange: (value: string) => void
   allowLoopback: boolean
   onAllowLoopbackChange: (value: boolean) => void
+  sshTunnelTargetId: string | null
+  onSshTunnelTargetIdChange: (value: string | null) => void
   onSubmit: () => void
 }) {
   const inputError = pairingCode.trim() !== '' && !parsedLink.ok
@@ -255,6 +260,13 @@ export function RemoteServerFields({
                 </span>
               </span>
             </label>
+          ) : null}
+          {parsedLink.value.endpointKind === 'loopback' && allowLoopback ? (
+            <RuntimeServerSshTunnelTargetSelect
+              value={sshTunnelTargetId}
+              disabled={disabled}
+              onChange={onSshTunnelTargetIdChange}
+            />
           ) : null}
         </div>
       ) : null}

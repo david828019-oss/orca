@@ -1,3 +1,4 @@
+import { registerSshRuntimeEnvironmentTunnels } from './ssh-runtime-environment-tunnel'
 import {
   AiVaultSearchRequestSchema,
   AiVaultSearchStatusRequestSchema
@@ -216,6 +217,7 @@ export function registerSshHandlers(
   registerSshTargetCrudHandlers()
   registerSshConnectionHandlers()
   registerSshPortForwardHandlers()
+  registerSshRuntimeEnvironmentTunnels()
 
   return {
     connectionManager: connectionManager!,

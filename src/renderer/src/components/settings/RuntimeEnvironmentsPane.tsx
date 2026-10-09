@@ -227,7 +227,9 @@ export function RuntimeEnvironmentsPane({
           setPairingCode(value)
           setAddServerFailure(null)
         }}
-        onAddEnvironment={(allowLoopback) => void addEnvironment(allowLoopback)}
+        onAddEnvironment={(allowLoopback, sshTunnelTargetId) =>
+          void addEnvironment(allowLoopback, sshTunnelTargetId)
+        }
         onOpenUpdateDialog={() => setRemoteServerUpdateDialogOpen(true)}
         refreshRemoteServerUpdates={refreshRemoteServerUpdates}
         onConnect={(environment) => void connectEnvironment(environment)}
