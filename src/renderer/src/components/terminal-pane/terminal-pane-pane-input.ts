@@ -191,7 +191,8 @@ export function installTerminalPaneInputHandling(context: PaneInputContext): voi
 }
 
 function isOpenHarmonyDesktopUserAgent(userAgent: string): boolean {
-  return userAgent.includes('OpenHarmony') && !/\((Phone|Tablet);/.test(userAgent)
+  // ArkWeb's UA leads with its device type; only PC (2-in-1) has a physical-keyboard IME.
+  return /\(PC;[^)]*\bOpenHarmony\b/i.test(userAgent)
 }
 
 export type { PaneInputContext }
