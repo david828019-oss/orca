@@ -1,20 +1,17 @@
-import { persistFreshPaneBinding } from '../runtime/spawn-commit'
+import { persistFreshPaneBinding } from './fresh-pane-binding'
 import { rollbackWorkspaceSessionAfterFailedAsyncWrite } from '../../../persistence/restoring-sessions/workspace-session-write-rollback'
-import { cloneWorkspaceSessionState } from '../../../persistence/restoring-sessions/session-owner-fields'
-import { toSshExecutionHostId } from '../../../../shared/execution-host'
-import { makePaneKey, parsePaneKey } from '../../../../shared/stable-pane-id'
-import type { Store } from '../../../persistence'
-import { retireTerminalSurfaceFromPersistence } from '../../../runtime/mobile-session-terminal-persistence-retirement'
+import { freezePublishedWorkspaceSession } from '../../../persistence/restoring-sessions/published-workspace-session-freeze'
+import { toSshExecutionHostId } from '../../../../shared/execution-host/execution-host'
+import { makePaneKey, parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import type { Store } from '../../../persistence/loading-store/store'
+import { retireTerminalSurfaceFromPersistence } from '../../../runtime/terminal/surface/mobile-session-terminal-persistence-retirement'
 import type { OrcaRuntimeService } from '../../../runtime/orca-runtime'
-import type {
-  IPtyProvider,
-  PtySpawnOptions,
-  PtySpawnResult
-} from '../../../providers/pty-provider-contract'
+import type { IPtyProvider, PtySpawnOptions } from '../../../providers/pty/provider-contract'
+import type { PtySpawnResult } from '../../../providers/pty/spawn-result'
 import { getPtySshConnectionId } from '../provider/registry'
 import { ptyIncarnationById } from '../provider/ownership-state'
 import type { ReplacedPaneOwner } from './replaced-pane-owner'
-import { spawnCommitBindingOrigin } from '../../../persistence/loading-store/pty-binding-span'
+import { spawnCommitBindingOrigin } from '../../../persistence/loading-store/terminal-bindings/pty-binding-span'
 
 export type StablePaneOwner = {
   handle?: string
@@ -138,7 +135,7 @@ export async function retirePersistedStablePaneOwner(
     if (current.ptyId !== owner.ptyId || current.incarnationId !== owner.persistedIncarnationId) {
       return { value: false, persist: false }
     }
-    const session = cloneWorkspaceSessionState(store.getWorkspaceSession(hostId))
+    const session = store.getWorkspaceSession(hostId)
     const retired = retireTerminalSurfaceFromPersistence(session, {
       worktreeId,
       parentTabId: owner.tabId,
@@ -150,7 +147,9 @@ export async function retirePersistedStablePaneOwner(
       return { value: false, persist: false }
     }
     store.setWorkspaceSession(retired, hostId)
-    const staged = cloneWorkspaceSessionState(store.getWorkspaceSession(hostId))
+    // The setter may normalize, so roll back from what it published.
+    const staged = store.getWorkspaceSession(hostId)
+    freezePublishedWorkspaceSession(staged)
     return {
       value: true,
       rollback: () => {
@@ -178,6 +177,8 @@ export type StablePaneSpawnContext = {
   onOwnerReresolved?: (owner: StablePaneOwner) => void
   /** Only a spawn holding the pane's reservation: it binds next, so its bind swaps the dead id. */
   keepAbsentBinding?: (dead: ReplacedPaneOwner) => void
+  /** Layout-owner build: a window's view, which attaches or starts nothing (attach-only-view.ts). */
+  attachOnlyView?: true
 }
 
 export function stablePanePersistenceFence(
@@ -197,6 +198,7 @@ export async function persistAdmittedStablePaneBinding(args: {
   result: PtySpawnResult
   worktreeId: string | undefined
   startupCwd: string | undefined
+  correctStartupCwd?: string
   connectionId?: string | null
 }): Promise<boolean> {
   const expectedBinding = stablePanePersistenceFence(args.owner)
@@ -210,6 +212,7 @@ export async function persistAdmittedStablePaneBinding(args: {
     ptyId: args.result.id,
     ...(args.result.incarnationId ? { incarnationId: args.result.incarnationId } : {}),
     ...(args.startupCwd ? { startupCwd: args.startupCwd } : {}),
+    ...(args.correctStartupCwd ? { correctStartupCwd: args.correctStartupCwd } : {}),
     expectedBinding,
     mayCreate: false,
     mayReviveRetiredSurface: false,
